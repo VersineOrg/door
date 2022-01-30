@@ -22,8 +22,10 @@ namespace SimpleHttpDemo
                 res.AsText($"Value of my-header is: {req.Headers["my-header"]}");
             });
 
+            int port = 1337;
+            Console.WriteLine("Server listening on port: " + port);
             HttpServer.ListenAsync(
-                    1337,
+                    port,
                     CancellationToken.None,
                     Route.OnHttpRequestAsync
                 )
