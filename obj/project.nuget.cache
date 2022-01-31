@@ -1,8 +1,15 @@
 {
   "version": 2,
-  "dgSpecHash": "pe4I4iUAPZx39/Zy/xjPE1UjXTo1WdLk3HELGFIKJnCFRyxauaHWde2CEaqBQqN586AdeKWOrzS/ppy9k98Qpw==",
+  "dgSpecHash": "1ah521PwM1VSok5egfmN232LVL0rHX+5XyLgd96+pFFspuMDALtGNf1cEx5KYI9yGoNW8XgbLnCdiInL4M/ggQ==",
   "success": true,
   "projectFilePath": "/home/saravenpi/Documents/code/epita/projetS2/door/door.csproj",
-  "expectedPackageFiles": [],
+  "expectedPackageFiles": [
+    "/home/saravenpi/.nuget/packages/microsoft.netcore.platforms/1.1.0/microsoft.netcore.platforms.1.1.0.nupkg.sha512",
+    "/home/saravenpi/.nuget/packages/microsoft.netcore.targets/1.1.0/microsoft.netcore.targets.1.1.0.nupkg.sha512",
+    "/home/saravenpi/.nuget/packages/system.runtime/4.3.0/system.runtime.4.3.0.nupkg.sha512",
+    "/home/saravenpi/.nuget/packages/system.runtime.compilerservices.unsafe/6.0.0/system.runtime.compilerservices.unsafe.6.0.0.nupkg.sha512",
+    "/home/saravenpi/.nuget/packages/system.text.encoding/4.3.0/system.text.encoding.4.3.0.nupkg.sha512",
+    "/home/saravenpi/.nuget/packages/system.text.encodings.web/6.0.0/system.text.encodings.web.6.0.0.nupkg.sha512"
+  ],
   "logs": []
 }
