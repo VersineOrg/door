@@ -1,7 +1,3 @@
-// Filename:  HttpServer.cs        
-// Author:    Benjamin N. Summerton <define-private-public>        
-// License:   Unlicense (http://unlicense.org/)
-
 using System.Net;
 using System.Text;
 using System.Text.Json;
