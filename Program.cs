@@ -2,6 +2,9 @@ using System.Net;
 using System.Text;
 using System.Text.Json;
 
+using MongoDB.Bson;
+using MongoDB.Driver;
+
 namespace door
 {
     public class Response
@@ -11,12 +14,21 @@ namespace door
     }
     class HttpServer
     {
+        
         public static HttpListener listener;
         public static string url = "http://localhost:8000/";
 
         public static async Task HandleIncomingConnections()
         {
-
+            // Replace the uri string with your MongoDB deployment's connection string.
+            var connectionString = "";
+            var client = new MongoClient(
+                connectionString
+            );
+            var database = client.GetDatabase("UserDB");
+            var collection = database.GetCollection<BsonDocument>("users");
+            Console.WriteLine("Database connected");
+            
             while (true)
             {
                 // While a user hasn't visited the `shutdown` url, keep on handling requests
@@ -78,6 +90,7 @@ namespace door
         public static void Main(string[] args)
         {
             // Create a Http server and start listening for incoming connections
+            
             listener = new HttpListener();
             listener.Prefixes.Add(url);
             listener.Start();

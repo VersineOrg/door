@@ -1,17 +1,17 @@
 {
   "format": 1,
   "restore": {
-    "/home/saravenpi/Documents/code/epita/projetS2/door/door.csproj": {}
+    "/home/saravenpi/Documents/code/epita/projets2/door/door.csproj": {}
   },
   "projects": {
-    "/home/saravenpi/Documents/code/epita/projetS2/door/door.csproj": {
+    "/home/saravenpi/Documents/code/epita/projets2/door/door.csproj": {
       "version": "1.0.0",
       "restore": {
-        "projectUniqueName": "/home/saravenpi/Documents/code/epita/projetS2/door/door.csproj",
+        "projectUniqueName": "/home/saravenpi/Documents/code/epita/projets2/door/door.csproj",
         "projectName": "door",
-        "projectPath": "/home/saravenpi/Documents/code/epita/projetS2/door/door.csproj",
+        "projectPath": "/home/saravenpi/Documents/code/epita/projets2/door/door.csproj",
         "packagesPath": "/home/saravenpi/.nuget/packages/",
-        "outputPath": "/home/saravenpi/Documents/code/epita/projetS2/door/obj/",
+        "outputPath": "/home/saravenpi/Documents/code/epita/projets2/door/obj/",
         "projectStyle": "PackageReference",
         "configFilePaths": [
           "/home/saravenpi/.nuget/NuGet/NuGet.Config"
@@ -38,6 +38,10 @@
         "net6.0": {
           "targetAlias": "net6.0",
           "dependencies": {
+            "MongoDB.Driver": {
+              "target": "Package",
+              "version": "[2.14.1, )"
+            },
             "System.Text.Encoding": {
               "target": "Package",
               "version": "[4.3.0, )"
