@@ -1,7 +1,6 @@
 using System.Net;
 using System.Text;
-using System.Text.Json;
-
+using Newtonsoft.Json;
 using MongoDB.Bson;
 using MongoDB.Driver;
 
@@ -21,12 +20,17 @@ namespace door
         public static async Task HandleIncomingConnections()
         {
             // Replace the uri string with your MongoDB deployment's connection string.
-            var connectionString = "";
+            
+            
+            /* var connectionString = "";
             var client = new MongoClient(
                 connectionString
             );
             var database = client.GetDatabase("UserDB");
             var collection = database.GetCollection<BsonDocument>("users");
+            */
+            
+            
             Console.WriteLine("Database connected");
             
             while (true)
@@ -40,31 +44,34 @@ namespace door
                 HttpListenerResponse resp = ctx.Response;
 
                 // Print out some info about the request
-                Console.WriteLine(req.Url.ToString());
-
                 Console.WriteLine(req.HttpMethod);
+                Console.WriteLine(req.Url.ToString());
                 Console.WriteLine(req.UserHostName);
                 Console.WriteLine(req.UserAgent);
-                Console.WriteLine();
 
                 
                 // If `shutdown` url requested w/ POST, then shutdown the server after serving the page
                 if ((req.HttpMethod == "POST") && (req.Url.AbsolutePath == "/login"))
                 {
                     var reader = new StreamReader(req.InputStream);
-                    string body = reader.ReadToEnd();
+                    string bodyString= reader.ReadToEnd();
+                    
+                    dynamic body = JsonConvert.DeserializeObject(bodyString);
                     Console.WriteLine(body);
-                    Console.WriteLine("Login Requested");
+                    
                     var response = new Response
                     {
                         success = "true",
                         message = "login requested"
                     };
-                    string jsonString = JsonSerializer.Serialize(response);
+                    
+                    string jsonString = JsonConvert.SerializeObject(response);
                     byte[] data = Encoding.UTF8.GetBytes(jsonString);
+                    
                     resp.ContentType = "application/json";
                     resp.ContentEncoding = Encoding.UTF8;
                     resp.ContentLength64 = data.LongLength;
+                    
                     // Write out to the response stream (asynchronously), then close it
                     await resp.OutputStream.WriteAsync(data, 0, data.Length);
                     resp.Close();
@@ -76,11 +83,14 @@ namespace door
                         success = "false",
                         message = "404"
                     };
-                    string jsonString = JsonSerializer.Serialize(response);
+                    
+                    string jsonString = JsonConvert.SerializeObject(response);
                     byte[] data = Encoding.UTF8.GetBytes(jsonString);
+                    
                     resp.ContentType = "application/json";
                     resp.ContentEncoding = Encoding.UTF8;
                     resp.ContentLength64 = data.LongLength;
+                    
                     // Write out to the response stream (asynchronously), then close it
                     await resp.OutputStream.WriteAsync(data, 0, data.Length);
                     resp.Close();    
