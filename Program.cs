@@ -41,6 +41,7 @@ namespace door
 
                 // Print out some info about the request
                 Console.WriteLine(req.Url.ToString());
+
                 Console.WriteLine(req.HttpMethod);
                 Console.WriteLine(req.UserHostName);
                 Console.WriteLine(req.UserAgent);
@@ -51,7 +52,8 @@ namespace door
                 if ((req.HttpMethod == "POST") && (req.Url.AbsolutePath == "/login"))
                 {
                     var reader = new StreamReader(req.InputStream);
-                    Console.WriteLine(reader.ReadToEnd());
+                    string body = reader.ReadToEnd();
+                    Console.WriteLine(body);
                     Console.WriteLine("Login Requested");
                     var response = new Response
                     {
