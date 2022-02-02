@@ -154,7 +154,6 @@ namespace door
                     }
                     else
                     {
-                        Console.WriteLine("Invalid body");
                         var response = new Response
                         {
                             success = "false",
