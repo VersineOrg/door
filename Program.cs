@@ -9,11 +9,15 @@ using MongoDB.Driver;
 
 namespace door
 {
+    
+    // Default Schema for a Http Response
     public class Response
     {
         public String success { get; set; }
         public String message { get; set; }
     }
+    
+    // Default Schema for a User
     public class User
          {
              
@@ -53,13 +57,10 @@ namespace door
 
         public static async Task HandleIncomingConnections(IConfigurationRoot config)
         {
-            // Replace the uri string with your MongoDB deployment's connection string.
 
+            // Connect to the MongoDB Database
             var connectionString = config.GetValue<String>("MongoDB");
-            var client = new MongoClient(
-                connectionString
-            );
-            
+            var client = new MongoClient(connectionString);
             BsonClassMap.RegisterClassMap<User>();
             var database = client.GetDatabase("UsersDB");
             var collection = database.GetCollection<User>("users");
@@ -70,7 +71,6 @@ namespace door
             
             while (true)
             {
-                // While a user hasn't visited the `shutdown` url, keep on handling requests
                 // Will wait here until we hear from a connection
                 HttpListenerContext ctx = await Listener?.GetContextAsync()!;
 
@@ -85,26 +85,34 @@ namespace door
                 Console.WriteLine(req.UserAgent);
 
                 
-                // If `shutdown` url requested w/ POST, then shutdown the server after serving the page
+                // If `register` url requested w/ POST, then register the user if possible
                 if ((req.HttpMethod == "POST") && (req.Url?.AbsolutePath == "/register"))
                 {
+                    // Parse the request's Body
                     var reader = new StreamReader(req.InputStream);
                     string bodyString = await reader.ReadToEndAsync();
                     dynamic body = JsonConvert.DeserializeObject(bodyString);
+                    
+                    // Get the username and the password from the body
                     string username = body.username;
                     string password = body.password;
+                    
+                    // Check if the Body contains the required fields
                     if (!String.IsNullOrEmpty(username) && !String.IsNullOrEmpty(password) &&
                         !String.IsNullOrWhiteSpace(username) && !String.IsNullOrWhiteSpace(password))
                     {
+                        
+                        // Look in the Database for a potential match with the requested username
                         var filter = Builders<User>.Filter.Eq("username", username);
                         var documents = collection.Find(filter);
     
+                        // if no user exists with this username, then register the user in the database, and send a success response
                         if (await documents.CountDocumentsAsync() < 1)
                         {
-                            Console.WriteLine("No user found with username: " + username);
+                            // Insert a new user in the Database with the chosen password and username
                             var newuser = new User(username, password);
                             await collection.InsertOneAsync(newuser);                       
-                            Console.WriteLine("User created");
+                            
                             var response = new Response
                             {
                                 success = "true",
@@ -122,9 +130,10 @@ namespace door
                             await resp.OutputStream.WriteAsync(data, 0, data.Length);
                             resp.Close();    
                         }
+                        
+                        // If a user already exists with this username, the user can't be registered
                         else
                         {
-                            Console.WriteLine("A user already exists with this username");
                             var response = new Response
                             {
                                 success = "false",
@@ -189,7 +198,7 @@ namespace door
 
         public static void Main(string[] args)
         {
-            // Create a Http server and start listening for incoming connections
+            // Build the configuration for the env variables
             var config =
                 new ConfigurationBuilder()
                     .SetBasePath(Directory.GetCurrentDirectory())
@@ -197,6 +206,7 @@ namespace door
                     .AddEnvironmentVariables()
                     .Build();
             
+            // Create a Http server and start listening for incoming connections
             var url = "http://*:" + config.GetValue<String>("Port") + "/";
             Listener = new HttpListener();
             Listener.Prefixes.Add(url);
