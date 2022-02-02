@@ -110,6 +110,7 @@ namespace door
                         if (await documents.CountDocumentsAsync() < 1)
                         {
                             // Insert a new user in the Database with the chosen password and username
+                            // TODO: Hash the password before inserting the model
                             var newuser = new User(username, password);
                             await collection.InsertOneAsync(newuser);                       
                             
@@ -130,6 +131,8 @@ namespace door
                             await resp.OutputStream.WriteAsync(data, 0, data.Length);
                             resp.Close();    
                         }
+                        
+                        // TODO: If `register` url requested w/ POST, then register the user if possible
                         
                         // If a user already exists with this username, the user can't be registered
                         else
