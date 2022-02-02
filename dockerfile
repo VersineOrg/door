@@ -1,24 +1,22 @@
 FROM mcr.microsoft.com/dotnet/sdk:6.0 AS build
-WORKDIR /source
+WORKDIR /app
 
 # copy csproj and restore as distinct layers
-COPY *.csproj .
-RUN dotnet add package Newtonsoft.Json
-RUN dotnet add package DnsClient
+COPY *.csproj ./
 RUN dotnet restore
 
 # copy and publish app and libraries
 COPY . .
-RUN dotnet publish -c release -o /app --no-cache
+RUN dotnet publish -c release -o out --no-cache
 
 
 # final stage/image
-FROM alpine
+FROM mcr.microsoft.com/dotnet/aspnet:6.0 
+EXPOSE 8000
 WORKDIR /app
-COPY --from=build /app .
-RUN ls -lsa
-#ENTRYPOINT ["./"]
-#RUN mkdir ./Docker
-#ENTRYPOINT ["./Docker"]
+COPY --from=build /app/out .
+EXPOSE 8000
+#CMD ["./door"] 
+ENTRYPOINT ["dotnet","door.dll"]
 
 
