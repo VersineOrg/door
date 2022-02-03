@@ -102,7 +102,7 @@ namespace door
             
             // generate payload json
             JObject payloadJson = new JObject(
-                new JProperty("name",username),
+                new JProperty("username",username),
                 new JProperty("exp",(GetCurrentUnixTime()+expireDelay).ToString())
             );
 
