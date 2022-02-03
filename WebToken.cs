@@ -89,7 +89,7 @@ namespace door
 
         private static uint GetCurrentUnixTime()
         {
-            return (uint) DateTime.Now.Subtract(new DateTime(1970, 1, 1)).TotalSeconds;
+            return (uint) DateTime.UtcNow.Subtract(new DateTime(1970, 1, 1)).TotalSeconds;
         }
         
         public static string GenerateToken(string username)
