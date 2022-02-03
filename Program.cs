@@ -1,5 +1,6 @@
 using System.Collections;
 using System.Net;
+using System.Security.Cryptography;
 using System.Text;
 using Newtonsoft.Json;
 using MongoDB.Bson;
@@ -19,37 +20,30 @@ namespace door
     
     // Default Schema for a User
     public class User
-         {
-             
-             public String username { get; set; }
-             public String password { get; set; }
-             
-             public String avatar { get; set; }
-             
-             public String bio { get; set; }
-             
-             public String banner { get; set; }
-             
-             public String color { get; set; }
-             
-             public List<User> friends { get; set; }
-             
-             public List<String> circles { get; set; }
+    { 
+        public ObjectId _id { get; }
+        public String Username { get; set; }
+        public String Password { get; set; }
+        public String Avatar { get; set; }
+        public String Bio { get; set; }
+        public String Banner { get; set; }
+        public String Color { get; set; }
+        public List<User> Friends { get; set; }
+        public List<String> Circles { get; set; }
 
-             [BsonConstructor]
-             public User(string username, string password)
-             {
-                 this.username = username;
-                 this.password = password;
-                 this.avatar = "https://i.imgur.com/k7eDNwW.jpg";
-                 this.bio = "Hey, I'm using Versine!";
-                 this.banner = "https://images7.alphacoders.com/421/thumb-1920-421957.jpg";
-                 this.color = "28DBB7";
-                 this.friends = new List<User>();
-                 this.circles = new List<string>();
-             }
-
-         }
+        [BsonConstructor]
+        public User(string username, string password)
+        {
+            this.Username = username;
+            this.Password = password;
+            this.Avatar = "https://i.imgur.com/k7eDNwW.jpg";
+            this.Bio = "Hey, I'm using Versine!";
+            this.Banner = "https://images7.alphacoders.com/421/thumb-1920-421957.jpg";
+            this.Color = "28DBB7";
+            this.Friends = new List<User>();
+            this.Circles = new List<string>();
+        }
+    }
     class HttpServer
     {
         
@@ -59,10 +53,12 @@ namespace door
         {
 
             // Connect to the MongoDB Database
+            
             var connectionString = config.GetValue<String>("MongoDB");
-            var client = new MongoClient(connectionString);
-            BsonClassMap.RegisterClassMap<User>();
+            var settings = MongoClientSettings.FromConnectionString(connectionString);
+            var client = new MongoClient(settings);
             var database = client.GetDatabase("UsersDB");
+            BsonClassMap.RegisterClassMap<User>();
             var collection = database.GetCollection<User>("users");
             Console.WriteLine("Database connected");
             
@@ -91,7 +87,7 @@ namespace door
                     // Parse the request's Body
                     var reader = new StreamReader(req.InputStream);
                     string bodyString = await reader.ReadToEndAsync();
-                    dynamic body = JsonConvert.DeserializeObject(bodyString);
+                    dynamic body = JsonConvert.DeserializeObject(bodyString)!;
                     
                     // Get the username and the password from the body
                     string username = body.username;
@@ -103,15 +99,24 @@ namespace door
                     {
                         
                         // Look in the Database for a potential match with the requested username
-                        var filter = Builders<User>.Filter.Eq("username", username);
-                        var documents = collection.Find(filter);
-    
+                        var filter = Builders<User>.Filter.Eq("Username", username);
+                        var documents = collection.Find(filter).FirstOrDefault();
+
                         // if no user exists with this username, then register the user in the database, and send a success response
-                        if (await documents.CountDocumentsAsync() < 1)
+                        if (documents == null)
                         {
-                            // Insert a new user in the Database with the chosen password and username
-                            // TODO: Hash the password before inserting the model
-                            var newuser = new User(username, password);
+                            // hash the password
+                            StringBuilder hashedpasswordbuilder = new StringBuilder();
+                            using (SHA256 hash = SHA256.Create()) {
+                                Encoding enc = Encoding.UTF8;
+                                Byte[] result = hash.ComputeHash(enc.GetBytes(password));
+                                foreach (Byte b in result)
+                                    hashedpasswordbuilder.Append(b.ToString("x2"));
+                            }
+                            string hashedpassword =  hashedpasswordbuilder.ToString();
+                            
+                            // Insert a new user in the Database with the hashed password and username
+                            var newuser = new User(username, hashedpassword);
                             await collection.InsertOneAsync(newuser);                       
                             
                             var response = new Response
