@@ -54,12 +54,12 @@ namespace door
 
             // Connect to the MongoDB Database
             
-            var connectionString = config.GetValue<String>("MongoDB");
-            var settings = MongoClientSettings.FromConnectionString(connectionString);
-            var client = new MongoClient(settings);
-            var database = client.GetDatabase("UsersDB");
+            string connectionString = config.GetValue<String>("MongoDB");
+            MongoClientSettings settings = MongoClientSettings.FromConnectionString(connectionString);
+            MongoClient client = new MongoClient(settings);
+            IMongoDatabase database = client.GetDatabase("UsersDB");
             BsonClassMap.RegisterClassMap<User>();
-            var collection = database.GetCollection<User>("users");
+            IMongoCollection<User> collection = database.GetCollection<User>("users");
             Console.WriteLine("Database connected");
             
             
@@ -85,7 +85,7 @@ namespace door
                 if ((req.HttpMethod == "POST") && (req.Url?.AbsolutePath == "/register"))
                 {
                     // Parse the request's Body
-                    var reader = new StreamReader(req.InputStream);
+                    StreamReader reader = new StreamReader(req.InputStream);
                     string bodyString = await reader.ReadToEndAsync();
                     dynamic body = JsonConvert.DeserializeObject(bodyString)!;
                     
@@ -99,8 +99,8 @@ namespace door
                     {
                         
                         // Look in the Database for a potential match with the requested username
-                        var filter = Builders<User>.Filter.Eq("Username", username);
-                        var documents = collection.Find(filter).FirstOrDefault();
+                        FilterDefinition<User> filter = Builders<User>.Filter.Eq("Username", username);
+                        User documents = collection.Find(filter).FirstOrDefault();
 
                         // if no user exists with this username, then register the user in the database, and send a success response
                         if (documents == null)
@@ -116,10 +116,10 @@ namespace door
                             string hashedpassword =  hashedpasswordbuilder.ToString();
                             
                             // Insert a new user in the Database with the hashed password and username
-                            var newuser = new User(username, hashedpassword);
+                            User newuser = new User(username, hashedpassword);
                             await collection.InsertOneAsync(newuser);                       
                             
-                            var response = new Response
+                            Response response = new Response
                             {
                                 success = "true",
                                 message = "user created"
@@ -142,7 +142,7 @@ namespace door
                         // If a user already exists with this username, the user can't be registered
                         else
                         {
-                            var response = new Response
+                            Response response = new Response
                             {
                                 success = "false",
                                 message = "username taken"
@@ -162,7 +162,7 @@ namespace door
                     }
                     else
                     {
-                        var response = new Response
+                        Response response = new Response
                         {
                             success = "false",
                             message = "invalid body"
@@ -182,7 +182,7 @@ namespace door
                 }
                 else
                 {
-                    var response = new Response
+                    Response response = new Response
                     {
                         success = "false",
                         message = "404"
@@ -206,7 +206,7 @@ namespace door
         public static void Main(string[] args)
         {
             // Build the configuration for the env variables
-            var config =
+            IConfigurationRoot config =
                 new ConfigurationBuilder()
                     .SetBasePath(Directory.GetCurrentDirectory())
                     .AddJsonFile("appsettings.json", true)
@@ -214,7 +214,7 @@ namespace door
                     .Build();
             
             // Create a Http server and start listening for incoming connections
-            var url = "http://*:" + config.GetValue<String>("Port") + "/";
+            string url = "http://*:" + config.GetValue<String>("Port") + "/";
             Listener = new HttpListener();
             Listener.Prefixes.Add(url);
             Listener.Start();
