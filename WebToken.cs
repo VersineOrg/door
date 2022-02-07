@@ -6,12 +6,18 @@ namespace door
 {
     public static class WebToken
     {
+        private static readonly IConfigurationRoot config =
+        new ConfigurationBuilder()
+            .SetBasePath(Directory.GetCurrentDirectory())
+            .AddJsonFile("appsettings.json", true)
+            .AddEnvironmentVariables()
+            .Build();
+                    
         // secret key, stored in an environment variable
-        private static readonly string secretKey = Environment.GetEnvironmentVariable("secretKey") ?? "";
-        
+        private static readonly string secretKey = config.GetValue<String>("secretKey") ?? "";
         // number of seconds until the token expires, if 0 the token never expires
         // stored in an environment variable
-        private static readonly uint expireDelay = UInt32.Parse(Environment.GetEnvironmentVariable("expireDelay") ?? "0");
+        private static readonly uint expireDelay = UInt32.Parse(config.GetValue<String>("expireDelay") ?? "0");
 
         // the encryption algorithm
         private static readonly string algorithm = "HS256";
@@ -19,7 +25,7 @@ namespace door
         
         // returns an empty string if token is invalid
         // otherwise returns the username in the token
-        public static string GetUsernameFromToken(string token)
+        public static string GetIdFromToken(string token)
         {
             // splits the token into the header, the payload and the signature
             string[] tokenParts = token.Split('.');
@@ -67,14 +73,14 @@ namespace door
             }
 
             // parse username, empty string if not present
-            JToken username = payload.GetValue("username");
-            string strUsername = "";
-            if (username != null)
+            JToken id = payload.GetValue("id");
+            string StrId = "";
+            if (id != null)
             {
-                strUsername = username.ToString();
+                StrId = id.ToString();
             }
 
-            return strUsername;
+            return StrId;
         }
 
         private static string EncodeBase64(string s)
@@ -92,7 +98,7 @@ namespace door
             return (uint) DateTime.UtcNow.Subtract(new DateTime(1970, 1, 1)).TotalSeconds;
         }
         
-        public static string GenerateToken(string username)
+        public static string GenerateToken(string id)
         {
             // generate header json
             JObject headerJson = new JObject(
@@ -102,7 +108,7 @@ namespace door
             
             // generate payload json
             JObject payloadJson = new JObject(
-                new JProperty("username",username),
+                new JProperty("id",id),
                 new JProperty("exp",(GetCurrentUnixTime()+expireDelay).ToString())
             );
 

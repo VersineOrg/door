@@ -16,6 +16,7 @@ namespace door
     {
         public String success { get; set; }
         public String message { get; set; }
+        public String data { get; set;}
     }
     
     // Default Schema for a User
@@ -80,7 +81,6 @@ namespace door
                 Console.WriteLine(req.UserHostName);
                 Console.WriteLine(req.UserAgent);
 
-                
                 // If `register` url requested w/ POST, then register the user if possible
                 if ((req.HttpMethod == "POST") && (req.Url?.AbsolutePath == "/register"))
                 {
@@ -103,7 +103,7 @@ namespace door
                         User documents = collection.Find(filter).FirstOrDefault();
 
                         // if no user exists with this username, then register the user in the database, and send a success response
-                        if (documents == null)
+                        if (documents != null)
                         {
                             // hash the password
                             StringBuilder hashedpasswordbuilder = new StringBuilder();
@@ -137,15 +137,133 @@ namespace door
                             resp.Close();    
                         }
                         
-                        // TODO: If `register` url requested w/ POST, then register the user if possible
-                        
                         // If a user already exists with this username, the user can't be registered
                         else
                         {
                             Response response = new Response
                             {
                                 success = "false",
-                                message = "username taken"
+                                message = "user not found"
+                            };
+                            
+                            string jsonString = JsonConvert.SerializeObject(response);
+                            byte[] data = Encoding.UTF8.GetBytes(jsonString);
+                            
+                            resp.ContentType = "application/json";
+                            resp.ContentEncoding = Encoding.UTF8;
+                            resp.ContentLength64 = data.LongLength;
+                            
+                            // Write out to the response stream (asynchronously), then close it
+                            await resp.OutputStream.WriteAsync(data, 0, data.Length);
+                            resp.Close();    
+                        }    
+                    }
+                    else
+                    {
+                        Response response = new Response
+                        {
+                            success = "false",
+                            message = "invalid body"
+                        };
+                        
+                        string jsonString = JsonConvert.SerializeObject(response);
+                        byte[] data = Encoding.UTF8.GetBytes(jsonString);
+                        
+                        resp.ContentType = "application/json";
+                        resp.ContentEncoding = Encoding.UTF8;
+                        resp.ContentLength64 = data.LongLength;
+                        
+                        // Write out to the response stream (asynchronously), then close it
+                        await resp.OutputStream.WriteAsync(data, 0, data.Length);
+                        resp.Close();    
+                    }
+                }
+
+                if ((req.HttpMethod == "POST") && (req.Url?.AbsolutePath == "/login"))
+                {
+                    // Parse the request's Body
+                    StreamReader reader = new StreamReader(req.InputStream);
+                    string bodyString = await reader.ReadToEndAsync();
+                    dynamic body = JsonConvert.DeserializeObject(bodyString)!;
+                    
+                    // Get the username and the password from the body
+                    string username = body.username;
+                    string password = body.password;
+                    
+                    // Check if the Body contains the required fields
+                    if (!String.IsNullOrEmpty(username) && !String.IsNullOrEmpty(password) &&
+                        !String.IsNullOrWhiteSpace(username) && !String.IsNullOrWhiteSpace(password))
+                    {
+                        
+                        // Look in the Database for a potential match with the requested username
+                        FilterDefinition<User> filter = Builders<User>.Filter.Eq("Username", username);
+                        User document = collection.Find(filter).FirstOrDefault();
+
+                        // if a user is found, check for the password matching
+                        if (document != null)
+                        {
+                            // hash the password
+                            StringBuilder hashedpasswordbuilder = new StringBuilder();
+                            using (SHA256 hash = SHA256.Create()) {
+                                Encoding enc = Encoding.UTF8;
+                                Byte[] result = hash.ComputeHash(enc.GetBytes(password));
+                                foreach (Byte b in result)
+                                    hashedpasswordbuilder.Append(b.ToString("x2"));
+                            }
+                            string hashedpassword =  hashedpasswordbuilder.ToString();
+                            
+                            // check if the hashed password and the stored password are matching
+                            if (document.Password == hashedpassword)
+                            {
+                                // generate the token with the id and send the response
+                                string token = WebToken.GenerateToken(document._id.ToString()); 
+                                Response response = new Response
+                                {
+                                    success = "true",
+                                    message = "user logged",
+                                    data = token
+                                };
+                                
+                                string jsonString = JsonConvert.SerializeObject(response);
+                                byte[] data = Encoding.UTF8.GetBytes(jsonString);
+                                
+                                resp.ContentType = "application/json";
+                                resp.ContentEncoding = Encoding.UTF8;
+                                resp.ContentLength64 = data.LongLength;
+                                
+                                // Write out to the response stream (asynchronously), then close it
+                                await resp.OutputStream.WriteAsync(data, 0, data.Length);
+                                resp.Close();
+                            }
+                            else
+                            {
+                                // password is not matching
+                                Response response = new Response
+                                {
+                                    success = "false",
+                                    message = "wrong password or username"
+                                };
+                                
+                                string jsonString = JsonConvert.SerializeObject(response);
+                                byte[] data = Encoding.UTF8.GetBytes(jsonString);
+                                
+                                resp.ContentType = "application/json";
+                                resp.ContentEncoding = Encoding.UTF8;
+                                resp.ContentLength64 = data.LongLength;
+                                
+                                // Write out to the response stream (asynchronously), then close it
+                                await resp.OutputStream.WriteAsync(data, 0, data.Length);
+                                resp.Close();
+                            }
+                        }
+                        
+                        // no user found with this username
+                        else
+                        {
+                            Response response = new Response
+                            {
+                                success = "false",
+                                message = "wrong password or username"
                             };
                             
                             string jsonString = JsonConvert.SerializeObject(response);
