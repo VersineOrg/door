@@ -1,6 +1,5 @@
-using System.Collections;
+using System.Diagnostics;
 using System.Net;
-using System.Security.Cryptography;
 using System.Text;
 using Newtonsoft.Json;
 using MongoDB.Bson;
@@ -8,23 +7,18 @@ using MongoDB.Bson.Serialization;
 using MongoDB.Bson.Serialization.Attributes;
 using MongoDB.Driver;
 
+
 namespace door
 {
-    
-    // Default Schema for a Http Response
-    public class Response
-    {
-        public String success { get; set; }
-        public String message { get; set; }
-        public String data { get; set;}
-    }
     
     // Default Schema for a User
     public class User
     { 
-        public ObjectId _id { get; }
+        public ObjectId _id { get; set; }
         public String Username { get; set; }
         public String Password { get; set; }
+        public String Ticket { get; set; }
+        public Int32 TicketCount { get; set; }
         public String Avatar { get; set; }
         public String Bio { get; set; }
         public String Banner { get; set; }
@@ -33,10 +27,12 @@ namespace door
         public List<String> Circles { get; set; }
 
         [BsonConstructor]
-        public User(string username, string password)
+        public User(string username, string password, string ticket)
         {
             this.Username = username;
             this.Password = password;
+            this.Ticket = ticket;
+            this.TicketCount = 10;
             this.Avatar = "https://i.imgur.com/k7eDNwW.jpg";
             this.Bio = "Hey, I'm using Versine!";
             this.Banner = "https://images7.alphacoders.com/421/thumb-1920-421957.jpg";
@@ -64,8 +60,6 @@ namespace door
             Console.WriteLine("Database connected");
             
             
-            
-            
             while (true)
             {
                 // Will wait here until we hear from a connection
@@ -74,7 +68,7 @@ namespace door
                 // Peel out the requests and response objects
                 HttpListenerRequest req = ctx.Request;
                 HttpListenerResponse resp = ctx.Response;
-
+                
                 // Print out some info about the request
                 Console.WriteLine(req.HttpMethod);
                 Console.WriteLine(req.Url?.ToString());
@@ -90,92 +84,68 @@ namespace door
                     dynamic body = JsonConvert.DeserializeObject(bodyString)!;
                     
                     // Get the username and the password from the body
-                    string username = body.username;
-                    string password = body.password;
+                    string username = (string) body.username;
+                    string password = (string) body.password;
+                    string ticket = (string) body.ticket;
                     
                     // Check if the Body contains the required fields
                     if (!String.IsNullOrEmpty(username) && !String.IsNullOrEmpty(password) &&
-                        !String.IsNullOrWhiteSpace(username) && !String.IsNullOrWhiteSpace(password))
+                        !String.IsNullOrWhiteSpace(username) && !String.IsNullOrWhiteSpace(password) && !String.IsNullOrEmpty(ticket) && !String.IsNullOrWhiteSpace(ticket))
                     {
-                        
                         // Look in the Database for a potential match with the requested username
-                        FilterDefinition<User> filter = Builders<User>.Filter.Eq("Username", username);
-                        User documents = collection.Find(filter).FirstOrDefault();
-
+                        FilterDefinition<User> userfilter = Builders<User>.Filter.Eq("Username", username);
+                        User userdocument = collection.Find(userfilter).FirstOrDefault();
+                        
                         // if no user exists with this username, then register the user in the database, and send a success response
-                        if (documents != null)
+                        if (userdocument == null)
                         {
-                            // hash the password
-                            StringBuilder hashedpasswordbuilder = new StringBuilder();
-                            using (SHA256 hash = SHA256.Create()) {
-                                Encoding enc = Encoding.UTF8;
-                                Byte[] result = hash.ComputeHash(enc.GetBytes(password));
-                                foreach (Byte b in result)
-                                    hashedpasswordbuilder.Append(b.ToString("x2"));
-                            }
-                            string hashedpassword =  hashedpasswordbuilder.ToString();
                             
-                            // Insert a new user in the Database with the hashed password and username
-                            User newuser = new User(username, hashedpassword);
-                            await collection.InsertOneAsync(newuser);                       
+                            // look in the database for a potential match with the requested ticket
+                            FilterDefinition<User> ticketfilter = Builders<User>.Filter.Eq("Ticket", ticket);
+                            User ticketdocument = collection.Find(ticketfilter).FirstOrDefault();                            // hash the password
                             
-                            Response response = new Response
+                            // if a ticket is found we register the user and we substract one to the used ticket count
+                            if (ticketdocument != null && ticketdocument.TicketCount >= 1)
                             {
-                                success = "true",
-                                message = "user created"
-                            };
+                                // the user's password is hashed
+                                string hashedpassword = HashTools.HashString(password);
+                                // generate a new ticket based of the username
+                                string newticket = Ticket.GenTicket(username);
+                                
+                                // Insert a new user in the Database with the hashed password and username generated ticket
+                                User newuser = new User(username, hashedpassword, newticket);
+                                await collection.InsertOneAsync(newuser);                       
+                                
+                                // change the count of the inviter
+                                var updateTicketFilter = Builders<User>.Filter.Eq("Ticket", ticket);
+                                var updateTicketCount = Builders<User>.Update.Inc("TicketCount", -1);
+                                var updateResult = collection.UpdateOne(updateTicketFilter, updateTicketCount);
+                                if (updateResult.MatchedCount == 1 && updateResult.ModifiedCount == 1)
+                                {
+                                    Response.Success(resp, "user created", "");
+                                }
+                                else
+                                {
+                                    Response.Fail(resp,"cannot update inviter's ticket");
+                                }
+                            }
+                            // no ticket found 
+                            else
+                            {
+                                Response.Fail(resp,"invalid or expired ticket");
+                            }
                             
-                            string jsonString = JsonConvert.SerializeObject(response);
-                            byte[] data = Encoding.UTF8.GetBytes(jsonString);
-                            
-                            resp.ContentType = "application/json";
-                            resp.ContentEncoding = Encoding.UTF8;
-                            resp.ContentLength64 = data.LongLength;
-                            
-                            // Write out to the response stream (asynchronously), then close it
-                            await resp.OutputStream.WriteAsync(data, 0, data.Length);
-                            resp.Close();    
                         }
                         
                         // If a user already exists with this username, the user can't be registered
                         else
                         {
-                            Response response = new Response
-                            {
-                                success = "false",
-                                message = "user not found"
-                            };
-                            
-                            string jsonString = JsonConvert.SerializeObject(response);
-                            byte[] data = Encoding.UTF8.GetBytes(jsonString);
-                            
-                            resp.ContentType = "application/json";
-                            resp.ContentEncoding = Encoding.UTF8;
-                            resp.ContentLength64 = data.LongLength;
-                            
-                            // Write out to the response stream (asynchronously), then close it
-                            await resp.OutputStream.WriteAsync(data, 0, data.Length);
-                            resp.Close();    
+                            Response.Fail(resp, "username taken");
                         }    
                     }
                     else
                     {
-                        Response response = new Response
-                        {
-                            success = "false",
-                            message = "invalid body"
-                        };
-                        
-                        string jsonString = JsonConvert.SerializeObject(response);
-                        byte[] data = Encoding.UTF8.GetBytes(jsonString);
-                        
-                        resp.ContentType = "application/json";
-                        resp.ContentEncoding = Encoding.UTF8;
-                        resp.ContentLength64 = data.LongLength;
-                        
-                        // Write out to the response stream (asynchronously), then close it
-                        await resp.OutputStream.WriteAsync(data, 0, data.Length);
-                        resp.Close();    
+                        Response.Fail(resp,"invalid body");
                     }
                 }
 
@@ -203,119 +173,36 @@ namespace door
                         if (document != null)
                         {
                             // hash the password
-                            StringBuilder hashedpasswordbuilder = new StringBuilder();
-                            using (SHA256 hash = SHA256.Create()) {
-                                Encoding enc = Encoding.UTF8;
-                                Byte[] result = hash.ComputeHash(enc.GetBytes(password));
-                                foreach (Byte b in result)
-                                    hashedpasswordbuilder.Append(b.ToString("x2"));
-                            }
-                            string hashedpassword =  hashedpasswordbuilder.ToString();
-                            
+                            string hashedpassword = HashTools.HashString(password);
                             // check if the hashed password and the stored password are matching
                             if (document.Password == hashedpassword)
                             {
                                 // generate the token with the id and send the response
                                 string token = WebToken.GenerateToken(document._id.ToString()); 
-                                Response response = new Response
-                                {
-                                    success = "true",
-                                    message = "user logged",
-                                    data = token
-                                };
                                 
-                                string jsonString = JsonConvert.SerializeObject(response);
-                                byte[] data = Encoding.UTF8.GetBytes(jsonString);
-                                
-                                resp.ContentType = "application/json";
-                                resp.ContentEncoding = Encoding.UTF8;
-                                resp.ContentLength64 = data.LongLength;
-                                
-                                // Write out to the response stream (asynchronously), then close it
-                                await resp.OutputStream.WriteAsync(data, 0, data.Length);
-                                resp.Close();
+                                Response.Success(resp, "user logged", token);
                             }
                             else
                             {
                                 // password is not matching
-                                Response response = new Response
-                                {
-                                    success = "false",
-                                    message = "wrong password or username"
-                                };
-                                
-                                string jsonString = JsonConvert.SerializeObject(response);
-                                byte[] data = Encoding.UTF8.GetBytes(jsonString);
-                                
-                                resp.ContentType = "application/json";
-                                resp.ContentEncoding = Encoding.UTF8;
-                                resp.ContentLength64 = data.LongLength;
-                                
-                                // Write out to the response stream (asynchronously), then close it
-                                await resp.OutputStream.WriteAsync(data, 0, data.Length);
-                                resp.Close();
+                                Response.Fail(resp, "wrong password or username");
                             }
                         }
                         
                         // no user found with this username
                         else
                         {
-                            Response response = new Response
-                            {
-                                success = "false",
-                                message = "wrong password or username"
-                            };
-                            
-                            string jsonString = JsonConvert.SerializeObject(response);
-                            byte[] data = Encoding.UTF8.GetBytes(jsonString);
-                            
-                            resp.ContentType = "application/json";
-                            resp.ContentEncoding = Encoding.UTF8;
-                            resp.ContentLength64 = data.LongLength;
-                            
-                            // Write out to the response stream (asynchronously), then close it
-                            await resp.OutputStream.WriteAsync(data, 0, data.Length);
-                            resp.Close();    
+                            Response.Fail(resp, "wrong password or username");
                         }    
                     }
                     else
                     {
-                        Response response = new Response
-                        {
-                            success = "false",
-                            message = "invalid body"
-                        };
-                        
-                        string jsonString = JsonConvert.SerializeObject(response);
-                        byte[] data = Encoding.UTF8.GetBytes(jsonString);
-                        
-                        resp.ContentType = "application/json";
-                        resp.ContentEncoding = Encoding.UTF8;
-                        resp.ContentLength64 = data.LongLength;
-                        
-                        // Write out to the response stream (asynchronously), then close it
-                        await resp.OutputStream.WriteAsync(data, 0, data.Length);
-                        resp.Close();    
+                        Response.Fail(resp, "invalid body");
                     }
                 }
                 else
                 {
-                    Response response = new Response
-                    {
-                        success = "false",
-                        message = "404"
-                    };
-                    
-                    string jsonString = JsonConvert.SerializeObject(response);
-                    byte[] data = Encoding.UTF8.GetBytes(jsonString);
-                    
-                    resp.ContentType = "application/json";
-                    resp.ContentEncoding = Encoding.UTF8;
-                    resp.ContentLength64 = data.LongLength;
-                    
-                    // Write out to the response stream (asynchronously), then close it
-                    await resp.OutputStream.WriteAsync(data, 0, data.Length);
-                    resp.Close();    
+                    Response.Fail(resp, "404");
                 }
             }
         }
