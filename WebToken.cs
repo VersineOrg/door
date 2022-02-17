@@ -98,7 +98,7 @@ namespace door
             return (uint) DateTime.UtcNow.Subtract(new DateTime(1970, 1, 1)).TotalSeconds;
         }
         
-        public static string GenerateToken(string id)
+        public static string? GenerateToken(string id)
         {
             // generate header json
             JObject headerJson = new JObject(
