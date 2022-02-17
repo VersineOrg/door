@@ -8,11 +8,11 @@ public class ResponseFormat
 {
     public String status { get; set; }
     public String message { get; set; }
-    public String data { get; set;}
+    public string? data { get; set;}
 }
 public class Response
 {
-    public static void Success(HttpListenerResponse resp, string message, string data)
+    public static void Success(HttpListenerResponse resp, string message, string? data)
     {
         ResponseFormat response = new ResponseFormat
         {
