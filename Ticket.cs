@@ -1651,5 +1651,4 @@ public class Ticket
         string final = username + "-" + word1 + word2;
         return final;
     }
-    
 }

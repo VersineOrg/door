@@ -25,23 +25,18 @@ public class Response
 
         try
         {
-            //resp.StatusCode = 200;
             resp.ContentLength64 = buffer.LongLength;
             resp.ContentType = "application/json";
             resp.ContentEncoding = Encoding.UTF8;
-
-
-            // Write out to the response stream (asynchronously), then close it
             resp.OutputStream.Write(buffer, 0, buffer.Length);
-            //resp.Close();        
+            
         }
         catch
         {
-            
+            // ignored
         }
-        
     }
-    public static async void Fail(HttpListenerResponse resp, string message)
+    public static void Fail(HttpListenerResponse resp, string message)
     {
         ResponseFormat response = new ResponseFormat
         {
@@ -50,25 +45,17 @@ public class Response
         };
         string jsonString = JsonConvert.SerializeObject(response);
         byte[] buffer = Encoding.UTF8.GetBytes(jsonString);
-
-
-
+        
         try
         {
-            resp.ContentLength64 = buffer.Length;
-            System.IO.Stream output = resp.OutputStream;
+            resp.ContentLength64 = buffer.LongLength;
             resp.ContentType = "application/json";
-            await output.WriteAsync(buffer, 0, buffer.Length);
-
-            // You must close the output stream.
-            output.Close();
+            resp.ContentEncoding = Encoding.UTF8;
+            resp.OutputStream.Write(buffer, 0, buffer.Length);
         }
         catch
         {
-           
+            // ignored
         }
-
-        
-        
     }
 }

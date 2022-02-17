@@ -7,9 +7,6 @@ namespace door;
 
 public class Database
 {
-    // Default Schema for a User
-
-
     public static IMongoCollection<User> Collection;
     public Database(string connectionString)
     {
@@ -26,11 +23,11 @@ public class Database
     {
         FilterDefinition<User> userfilter = Builders<User>.Filter.Eq("Username", username);
         User userdocument = Collection.Find(userfilter).FirstOrDefault();
+        
         if (userdocument != null)
         {
             return true;
         }
-
         return false;
     }
 
@@ -43,7 +40,6 @@ public class Database
         {
             return true;
         }
-
         return false;
     }
 
@@ -54,31 +50,19 @@ public class Database
         if (userdocument != null)
         {
             string hashedpassword = HashTools.HashString(password);
-            // check if the hashed password and the stored password are matching
+            
             if (userdocument.Password == hashedpassword)
             {
-                // generate the token with the id and send the response
                 string? token = WebToken.GenerateToken(userdocument._id.ToString());
-
                 return token;
             }
-            else
-            {
-                // password is not matching
-                return null;
-            }
-        }
-        else
-        {
             return null;
         }
+        return null;
     }
 
     public bool RegisterUser(string username, string password, string ticket)
     {
-        // Insert a new user in the Database with the hashed password and username generated ticket
-        
-        // change the count of the inviter
         var updateTicketFilter = Builders<User>.Filter.Eq("Ticket", ticket);
         var updateTicketCount = Builders<User>.Update.Inc("TicketCount", -1);
         var updateResult = Collection.UpdateOne(updateTicketFilter, updateTicketCount);
