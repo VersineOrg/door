@@ -48,7 +48,6 @@ public class User
     {
         BsonDocument result = new BsonDocument(
             new BsonElement("username",Username),
-            new BsonElement("username",Username),
             new BsonElement("password",Password),
             new BsonElement("ticket",Ticket),
             new BsonElement("ticketCount",TicketCount),
