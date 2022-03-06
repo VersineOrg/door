@@ -15,6 +15,7 @@ namespace door
                     
         // secret key, stored in an environment variable
         private static readonly string secretKey = config.GetValue<String>("secretKey") ?? "";
+        
         // number of seconds until the token expires, if 0 the token never expires
         // stored in an environment variable
         private static readonly uint expireDelay = UInt32.Parse(config.GetValue<String>("expireDelay") ?? "0");
@@ -98,7 +99,7 @@ namespace door
             return (uint) DateTime.UtcNow.Subtract(new DateTime(1970, 1, 1)).TotalSeconds;
         }
         
-        public static string? GenerateToken(string id)
+        public static string GenerateToken(string id)
         {
             // generate header json
             JObject headerJson = new JObject(
