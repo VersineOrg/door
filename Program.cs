@@ -176,7 +176,7 @@ class HttpServer
                 .Build();
             
         string connectionString = config.GetValue<String>("connectionString");
-        string databaseNAme = config.GetValue<String>("databaseNAme");
+        string databaseNAme = config.GetValue<String>("databaseName");
         string collectionName = config.GetValue<String>("collectionName");
 
         
