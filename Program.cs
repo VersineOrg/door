@@ -1,6 +1,6 @@
 using System.Net;
+using MongoDB.Bson;
 using Newtonsoft.Json;
-
 
 namespace door;
 
@@ -9,7 +9,7 @@ class HttpServer
         
     public static HttpListener? Listener;
 
-    public static async Task HandleIncomingConnections(Database database)
+    public static async Task HandleIncomingConnections(EasyMango.EasyMango database)
     {
         while (true)
         {
@@ -29,40 +29,67 @@ class HttpServer
                 string bodyString = await reader.ReadToEndAsync();
                 dynamic body = JsonConvert.DeserializeObject(bodyString)!;
                     
-                string username = (string) body.username;
-                string password = (string) body.password;
-                string ticket = (string) body.ticket;
-                    
-                if (!String.IsNullOrEmpty(username) && !String.IsNullOrEmpty(password) &&
-                    !String.IsNullOrWhiteSpace(username) && !String.IsNullOrWhiteSpace(password) && !String.IsNullOrEmpty(ticket) && !String.IsNullOrWhiteSpace(ticket))
+                string username = ((string) body.username).Trim();
+                string password = ((string) body.password).Trim();
+                string ticket = ((string) body.ticket).Trim();
+
+                if (!(String.IsNullOrEmpty(username) || String.IsNullOrEmpty(password) || String.IsNullOrEmpty(ticket)))
                 {
-                    if (!database.UserExists(username))
+
+                    // Verify username
+                    if (!database.GetSingleDatabaseEntry("username", username, out BsonDocument nonExistentUser))
                     {
-                        if (database.TicketIsValid(ticket))
+
+                        // Verify ticket
+                        if (database.GetSingleDatabaseEntry("ticket", ticket, out BsonDocument ticketOwnerBson))
                         {
-                            if (database.RegisterUser(username, password, ticket))
+                            if (ticketOwnerBson.GetElement("ticketCount").Value.AsInt32 > 0)
                             {
-                                Response.Success(resp, "user created", "");
+                                // Hash password and add salt
+                                password = HashTools.HashString(password, username);
+
+                                string userTicket = Ticket.GenTicket(username);
+                                User newUser = new User(username, password, userTicket);
+
+                                // Register new user
+                                if (database.AddSingleDatabaseEntry(newUser.ToBson()))
+                                {
+                                    // change ticket count
+                                    User ticketOwner = new User(ticketOwnerBson);
+                                    ticketOwner.TicketCount -= 1;
+                                    database.ReplaceSingleDatabaseEntry("username", ticketOwner.Username,
+                                        ticketOwner.ToBson());
+
+                                    // response
+                                    Response.Success(resp, "user created", "");
+                                }
+                                else
+                                {
+                                    Response.Fail(resp, "an error occured, please try again in a few minutes");
+                                }
                             }
                             else
                             {
-                                Response.Fail(resp,"cannot register user");
+                                Response.Fail(resp, "expired ticket");
                             }
                         }
                         else
                         {
-                            Response.Fail(resp,"invalid or expired ticket");
+                            Response.Fail(resp, "invalid ticket");
                         }
                     }
                     else
                     {
                         Response.Fail(resp, "username taken");
-                    }    
+                    }
                 }
                 else
                 {
                     Response.Fail(resp,"invalid body");
                 }
+            }else
+            {
+                Response.Fail(resp, "404");
             }
 
             if (req.HttpMethod == "POST" && req.Url?.AbsolutePath == "/login")
@@ -71,20 +98,60 @@ class HttpServer
                 string bodyString = await reader.ReadToEndAsync();
                 dynamic body = JsonConvert.DeserializeObject(bodyString)!;
                     
-                string username = body.username;
-                string password = body.password;
-                    
-                if (!String.IsNullOrEmpty(username) && !String.IsNullOrEmpty(password) &&
-                    !String.IsNullOrWhiteSpace(username) && !String.IsNullOrWhiteSpace(password))
+                string username = ((string) body.username).Trim();
+                string password = HashTools.HashString((string) body.password,username);
+
+                if (!(String.IsNullOrEmpty(username) || String.IsNullOrEmpty(password)))
                 {
-                    string? token = database.AuthenticateUser(username, password);
-                    if (token != null)
-                    {
-                        Response.Success(resp, "user logged", token);
+                    BsonDocument userDocument;
+                    if (database.GetSingleDatabaseEntry("username", username, out userDocument)){
+                        
+                        User user = new User(userDocument);
+
+                        if (user.Password == password)
+                        {
+                            Response.Success(resp, "logged in", WebToken.GenerateToken(username));
+                        }
+                        else
+                        {
+                            Response.Fail(resp, "wrong username or password");
+                        }
                     }
                     else
                     {
-                        Response.Fail(resp, "wrong password or username");
+                        Response.Fail(resp, "user doesn't exist"); 
+                    }
+                }
+                else
+                {
+                    Response.Fail(resp, "invalid body");
+                }
+            }
+            else
+            {
+                Response.Fail(resp, "404");
+            }
+            
+            
+            
+            if (req.HttpMethod == "POST" && req.Url?.AbsolutePath == "/tokenlogin")
+            {
+                StreamReader reader = new StreamReader(req.InputStream);
+                string bodyString = await reader.ReadToEndAsync();
+                dynamic body = JsonConvert.DeserializeObject(bodyString)!;
+                    
+                string token = ((string) body.token).Trim();
+
+                if (!String.IsNullOrEmpty(token))
+                {
+                    string username = WebToken.GetIdFromToken(token);
+                    if (username=="")
+                    {
+                        Response.Fail(resp, "invalid token");
+                    }
+                    else
+                    {
+                        Response.Success(resp, "logged in", WebToken.GenerateToken(username));
                     }
                 }
                 else
@@ -99,23 +166,6 @@ class HttpServer
         }
     }
 
-
-<<<<<<< HEAD
-<<<<<<< HEAD
-  public static void Main(string[] args)
-  {
-    IConfigurationRoot config =
-      new ConfigurationBuilder()
-      .SetBasePath(Directory.GetCurrentDirectory())
-      .AddJsonFile("appsettings.json", true)
-      .AddEnvironmentVariables()
-      .Build();
-=======
-        
-        // Create a new 
-        EasyMango.EasyMango database = new EasyMango.EasyMango(connectionString,databaseNAme,collectionName);
-        
-=======
     public static void Main(string[] args)
     {
         IConfigurationRoot config =
@@ -125,9 +175,14 @@ class HttpServer
                 .AddEnvironmentVariables()
                 .Build();
             
-        string connectionString = config.GetValue<String>("MongoDB");
-        Database database = new Database(connectionString);
->>>>>>> parent of 49dca3a (jsp)
+        string connectionString = config.GetValue<String>("connectionString");
+        string databaseNAme = config.GetValue<String>("databaseName");
+        string collectionName = config.GetValue<String>("collectionName");
+
+        
+        // Create a new EasyMango database
+        EasyMango.EasyMango database = new EasyMango.EasyMango(connectionString,databaseNAme,collectionName);
+        
             
         // Create a Http server and start listening for incoming connections
         string url = "http://*:" + config.GetValue<String>("Port") + "/";
@@ -135,41 +190,12 @@ class HttpServer
         Listener.Prefixes.Add(url);
         Listener.Start();
         Console.WriteLine("Listening for connections on {0}", url);
-<<<<<<< HEAD
->>>>>>> parent of 62fdd10 (added comment)
-=======
->>>>>>> parent of 49dca3a (jsp)
 
         // Handle requests
         Task listenTask = HandleIncomingConnections(database);
         listenTask.GetAwaiter().GetResult();
 
-<<<<<<< HEAD
-<<<<<<< HEAD
-    // Create a Http server and start listening for incoming connections
-    string url = "http://*:" + config.GetValue<String>("Port") + "/";
-    Listener = new HttpListener();
-    Listener.Prefixes.Add(url);
-    Listener.Start();
-    Console.WriteLine("Listening for connections on {0}", url);
-
-    // Handle requests
-    Task listenTask = HandleIncomingConnections(database);
-    listenTask.GetAwaiter().GetResult();
-
-    // Close the listener
-    Listener.Close();
-  }
-}
-=======
         // Close the listener
         Listener.Close();
     }
 }
->>>>>>> parent of 62fdd10 (added comment)
-=======
-        // Close the listener
-        Listener.Close();
-    }
-}
->>>>>>> parent of 49dca3a (jsp)
