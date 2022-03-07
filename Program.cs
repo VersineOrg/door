@@ -180,7 +180,7 @@ class HttpServer
         string collectionName = config.GetValue<String>("collectionName");
 
         
-        // Create a new 
+        // Create a new EasyMango database
         EasyMango.EasyMango database = new EasyMango.EasyMango(connectionString,databaseNAme,collectionName);
         
             
