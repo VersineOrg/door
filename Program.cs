@@ -100,6 +100,7 @@ class HttpServer
   }
 
 
+<<<<<<< HEAD
   public static void Main(string[] args)
   {
     IConfigurationRoot config =
@@ -108,10 +109,24 @@ class HttpServer
       .AddJsonFile("appsettings.json", true)
       .AddEnvironmentVariables()
       .Build();
+=======
+        
+        // Create a new 
+        EasyMango.EasyMango database = new EasyMango.EasyMango(connectionString,databaseNAme,collectionName);
+        
+            
+        // Create a Http server and start listening for incoming connections
+        string url = "http://*:" + config.GetValue<String>("Port") + "/";
+        Listener = new HttpListener();
+        Listener.Prefixes.Add(url);
+        Listener.Start();
+        Console.WriteLine("Listening for connections on {0}", url);
+>>>>>>> parent of 62fdd10 (added comment)
 
     string connectionString = config.GetValue<String>("MongoDB");
     Database database = new Database(connectionString);
 
+<<<<<<< HEAD
     // Create a Http server and start listening for incoming connections
     string url = "http://*:" + config.GetValue<String>("Port") + "/";
     Listener = new HttpListener();
@@ -127,3 +142,9 @@ class HttpServer
     Listener.Close();
   }
 }
+=======
+        // Close the listener
+        Listener.Close();
+    }
+}
+>>>>>>> parent of 62fdd10 (added comment)
