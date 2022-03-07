@@ -87,7 +87,8 @@ class HttpServer
                 {
                     Response.Fail(resp,"invalid body");
                 }
-            }else
+            }
+            else
             {
                 Response.Fail(resp, "404");
             }
