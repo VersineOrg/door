@@ -1,3 +1,4 @@
+using System.Linq.Expressions;
 using System.Net;
 using MongoDB.Bson;
 using Newtonsoft.Json;
@@ -28,10 +29,22 @@ class HttpServer
                 StreamReader reader = new StreamReader(req.InputStream);
                 string bodyString = await reader.ReadToEndAsync();
                 dynamic body = JsonConvert.DeserializeObject(bodyString)!;
-                    
-                string username = ((string) body.username).Trim();
-                string password = ((string) body.password).Trim();
-                string ticket = ((string) body.ticket).Trim();
+
+                string username;
+                string password;
+                string ticket;
+                try
+                {
+                    username = ((string) body.username).Trim();
+                    password = (string) body.password;
+                    ticket = ((string) body.ticket).Trim();
+                }
+                catch
+                {
+                    username = "";
+                    password = "";
+                    ticket = "";
+                }
 
                 if (!(String.IsNullOrEmpty(username) || String.IsNullOrEmpty(password) || String.IsNullOrEmpty(ticket)))
                 {
@@ -98,12 +111,25 @@ class HttpServer
                 StreamReader reader = new StreamReader(req.InputStream);
                 string bodyString = await reader.ReadToEndAsync();
                 dynamic body = JsonConvert.DeserializeObject(bodyString)!;
-                    
-                string username = ((string) body.username).Trim();
-                string password = HashTools.HashString((string) body.password,username);
+
+
+                string username;
+                string password;
+                try
+                {
+                    username = ((string) body.username).Trim();
+                    password = (string) body.password;
+                }
+                catch
+                {
+                    username = "";
+                    password = "";
+                }
 
                 if (!(String.IsNullOrEmpty(username) || String.IsNullOrEmpty(password)))
                 {
+                    password = HashTools.HashString(password, username);
+                    
                     BsonDocument userDocument;
                     if (database.GetSingleDatabaseEntry("username", username, out userDocument)){
                         
@@ -195,7 +221,7 @@ class HttpServer
         // Handle requests
         Task listenTask = HandleIncomingConnections(database);
         listenTask.GetAwaiter().GetResult();
-
+        
         // Close the listener
         Listener.Close();
     }
