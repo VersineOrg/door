@@ -69,7 +69,7 @@ class HttpServer
                                 {
                                     // change ticket count
                                     ticketOwnerBson.SetElement(new BsonElement("ticketCount",ticketCount-1));
-                                    database.ReplaceSingleDatabaseEntry("_id", ticketOwnerBson.GetElement("_id").Value.AsString,
+                                    database.ReplaceSingleDatabaseEntry("_id", ticketOwnerBson.GetElement("_id").Value.AsObjectId,
                                         ticketOwnerBson);
                                     
                                     // response
