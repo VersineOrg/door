@@ -1,4 +1,3 @@
-using System.Linq.Expressions;
 using System.Net;
 using MongoDB.Bson;
 using Newtonsoft.Json;
@@ -56,7 +55,8 @@ class HttpServer
                         // Verify ticket
                         if (database.GetSingleDatabaseEntry("ticket", ticket, out BsonDocument ticketOwnerBson))
                         {
-                            if (ticketOwnerBson.GetElement("ticketCount").Value.AsInt32 > 0)
+                            int ticketCount = ticketOwnerBson.GetElement("ticketCount").Value.AsInt32;
+                            if ( ticketCount > 0)
                             {
                                 // Hash password and add salt
                                 password = HashTools.HashString(password, username);
@@ -68,11 +68,10 @@ class HttpServer
                                 if (database.AddSingleDatabaseEntry(newUser.ToBson()))
                                 {
                                     // change ticket count
-                                    User ticketOwner = new User(ticketOwnerBson);
-                                    ticketOwner.TicketCount -= 1;
-                                    database.ReplaceSingleDatabaseEntry("username", ticketOwner.Username,
-                                        ticketOwner.ToBson());
-
+                                    ticketOwnerBson.SetElement(new BsonElement("ticketCount",ticketCount-1));
+                                    database.ReplaceSingleDatabaseEntry("_id", ticketOwnerBson.GetElement("_id").Value.AsString,
+                                        ticketOwnerBson);
+                                    
                                     // response
                                     Response.Success(resp, "user created", "");
                                 }
@@ -129,13 +128,11 @@ class HttpServer
                 if (!(String.IsNullOrEmpty(username) || String.IsNullOrEmpty(password)))
                 {
                     password = HashTools.HashString(password, username);
-                    
-                    BsonDocument userDocument;
-                    if (database.GetSingleDatabaseEntry("username", username, out userDocument)){
-                        
-                        User user = new User(userDocument);
 
-                        if (user.Password == password)
+                    // search user by username
+                    if (database.GetSingleDatabaseEntry("username", username, out BsonDocument userDocument))
+                    {
+                        if (userDocument.GetElement("password").Value.AsString == password)
                         {
                             Response.Success(resp, "logged in", WebToken.GenerateToken(username));
                         }
