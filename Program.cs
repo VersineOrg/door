@@ -159,8 +159,17 @@ class HttpServer
                 StreamReader reader = new StreamReader(req.InputStream);
                 string bodyString = await reader.ReadToEndAsync();
                 dynamic body = JsonConvert.DeserializeObject(bodyString)!;
-                    
-                string token = ((string) body.token).Trim();
+                
+                string token;
+                
+                try
+                {
+                    token = ((string) body.token).Trim();
+                }
+                catch
+                {
+                    token = "";
+                }
 
                 if (!String.IsNullOrEmpty(token))
                 {
