@@ -100,12 +100,7 @@ class HttpServer
                     Response.Fail(resp,"invalid body");
                 }
             }
-            else
-            {
-                Response.Fail(resp, "404");
-            }
-
-            if (req.HttpMethod == "POST" && req.Url?.AbsolutePath == "/login")
+            else if (req.HttpMethod == "POST" && req.Url?.AbsolutePath == "/login")
             {
                 StreamReader reader = new StreamReader(req.InputStream);
                 string bodyString = await reader.ReadToEndAsync();
@@ -151,14 +146,7 @@ class HttpServer
                     Response.Fail(resp, "invalid body");
                 }
             }
-            else
-            {
-                Response.Fail(resp, "404");
-            }
-            
-            
-            
-            if (req.HttpMethod == "POST" && req.Url?.AbsolutePath == "/tokenlogin")
+            else if (req.HttpMethod == "POST" && req.Url?.AbsolutePath == "/tokenlogin")
             {
                 StreamReader reader = new StreamReader(req.InputStream);
                 string bodyString = await reader.ReadToEndAsync();
