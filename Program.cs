@@ -73,7 +73,7 @@ class HttpServer
                                         ticketOwnerBson);
                                     
                                     // response
-                                    Response.Success(resp, "user created", "");
+                                    Response.Success(resp, "user created", WebToken.GenerateToken(username));
                                 }
                                 else
                                 {
@@ -163,7 +163,7 @@ class HttpServer
                     }
                     else
                     {
-                        Response.Success(resp, "logged in", WebToken.GenerateToken(username));
+                        Response.Success(resp, "logged in","");
                     }
                 }
                 else
