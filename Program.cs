@@ -187,6 +187,8 @@ class HttpServer
             {
                 Response.Fail(resp, "404");
             }
+            // close response
+            resp.Close();
         }
     }
 
