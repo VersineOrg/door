@@ -40,21 +40,22 @@ namespace door
             // decode token from base 64
             // the 3 parts of the token are
             // encoded for obfuscation
-            tokenParts[0] = DecodeBase64(tokenParts[0]);
-            tokenParts[1] = DecodeBase64(tokenParts[1]);
+            
             tokenParts[2] = DecodeBase64(tokenParts[2]);
 
             // verifies that token hasn't been altered
             // with the signature field
-            if (Encoding.ASCII.GetString(
+            if (!(Encoding.ASCII.GetString(
                     HMACSHA256.HashData(
-                        Encoding.ASCII.GetBytes(secretKey),
-                        Encoding.ASCII.GetBytes(tokenParts[0] + tokenParts[1])))
-                != tokenParts[2])
+                        Encoding.ASCII.GetBytes(secretKey), 
+                        Encoding.ASCII.GetBytes(tokenParts[0] + tokenParts[1]))).Equals(tokenParts[2])))
             {
                 return "";
             }
 
+            tokenParts[0] = DecodeBase64(tokenParts[0]);
+            tokenParts[1] = DecodeBase64(tokenParts[1]);
+            
             // put the content of the payload in
             // the payload variable
             JObject payload = JObject.Parse(tokenParts[1]);
@@ -110,7 +111,7 @@ namespace door
             // generate payload json
             JObject payloadJson = new JObject(
                 new JProperty("id",id),
-                new JProperty("exp",(GetCurrentUnixTime()+expireDelay).ToString())
+                new JProperty("exp",expireDelay==0?"0":(GetCurrentUnixTime()+expireDelay).ToString())
             );
 
             string header = EncodeBase64(headerJson.ToString());
