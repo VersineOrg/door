@@ -67,13 +67,21 @@ class HttpServer
                                 // Register new user
                                 if (database.AddSingleDatabaseEntry(newUser.ToBson()))
                                 {
-                                    // change ticket count
-                                    ticketOwnerBson.SetElement(new BsonElement("ticketCount",ticketCount-1));
-                                    database.ReplaceSingleDatabaseEntry("_id", ticketOwnerBson.GetElement("_id").Value.AsObjectId,
-                                        ticketOwnerBson);
-                                    
-                                    // response
-                                    Response.Success(resp, "user created", WebToken.GenerateToken(username));
+                                    if (database.GetSingleDatabaseEntry("username", username,out BsonDocument newUserBson))
+                                    {
+                                        // change ticket count
+                                        ticketOwnerBson.SetElement(new BsonElement("ticketCount", ticketCount - 1));
+                                        database.ReplaceSingleDatabaseEntry("_id",
+                                            ticketOwnerBson.GetElement("_id").Value.AsObjectId,
+                                            ticketOwnerBson);
+
+                                        // response
+                                        Response.Success(resp, "user created", WebToken.GenerateToken(newUserBson.GetElement("_id").Value.AsObjectId.ToString()));
+                                    }
+                                    else
+                                    {
+                                        Response.Fail(resp, "an error occured, please try again in a few minutes");
+                                    }
                                 }
                                 else
                                 {
@@ -129,7 +137,7 @@ class HttpServer
                     {
                         if (userDocument.GetElement("password").Value.AsString == password)
                         {
-                            Response.Success(resp, "logged in", WebToken.GenerateToken(username));
+                            Response.Success(resp, "logged in", WebToken.GenerateToken(userDocument.GetElement("_id").Value.AsObjectId.ToString()));
                         }
                         else
                         {
@@ -156,8 +164,8 @@ class HttpServer
 
                 if (!String.IsNullOrEmpty(token))
                 {
-                    string username = WebToken.GetIdFromToken(token);
-                    if (username=="")
+                    string id = WebToken.GetIdFromToken(token);
+                    if (id=="")
                     {
                         Response.Fail(resp, "invalid token");
                     }
