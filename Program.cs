@@ -6,7 +6,6 @@ namespace door;
 
 class HttpServer
 {
-        
     public static HttpListener? Listener;
 
     public static async Task HandleIncomingConnections(EasyMango.EasyMango database)
@@ -180,7 +179,11 @@ class HttpServer
                     }
                     else
                     {
-                        Response.Success(resp, "logged in","");
+                        if (database.GetSingleDatabaseEntry("_id", new BsonObjectId(new ObjectId(id)),
+                                out BsonDocument userBsonDocument))
+                        {
+                            Response.Success(resp, "logged in",id);
+                        }
                     }
                 }
                 else
@@ -213,8 +216,7 @@ class HttpServer
         
         // Create a new EasyMango database
         EasyMango.EasyMango database = new EasyMango.EasyMango(connectionString,databaseNAme,collectionName);
-        
-            
+
         // Create a Http server and start listening for incoming connections
         string url = "http://*:" + config.GetValue<String>("Port") + "/";
         Listener = new HttpListener();
