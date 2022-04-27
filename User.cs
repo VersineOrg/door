@@ -1,5 +1,4 @@
 using MongoDB.Bson;
-using MongoDB.Bson.Serialization.Attributes;
 
 namespace door;
 
@@ -14,7 +13,6 @@ public class User
     public String banner;
     public String color;
     public List<BsonObjectId> friends;
-    public List<List<BsonObjectId>> circles;
     public List<BsonObjectId> incomingFriendRequests;
     public List<BsonObjectId> outgoingFriendRequests;
     
@@ -29,7 +27,6 @@ public class User
         banner = "https://images7.alphacoders.com/421/thumb-1920-421957.jpg";
         color = "28DBB7";
         friends = new List<BsonObjectId>();
-        circles = new List<List<BsonObjectId>>();
         incomingFriendRequests = new List<BsonObjectId>();
         outgoingFriendRequests = new List<BsonObjectId>();
     }
@@ -45,21 +42,13 @@ public class User
         banner = "https://images7.alphacoders.com/421/thumb-1920-421957.jpg";
         color = "28DBB7";
         friends = new List<BsonObjectId>();
-        circles = new List<List<BsonObjectId>>();
         incomingFriendRequests = new List<BsonObjectId>();
         outgoingFriendRequests = new List<BsonObjectId>();
     }
 
     public BsonDocument ToBson()
     {
-        BsonArray circlesArray = new BsonArray();
-
-        foreach (List<BsonObjectId> circle in circles)
-        {
-            circlesArray.Add(new BsonArray(circle));
-        }
-
-        BsonDocument result = new BsonDocument(
+        return new BsonDocument(
             new BsonElement("username",username),
             new BsonElement("password",password),
             new BsonElement("ticket",ticket),
@@ -69,10 +58,8 @@ public class User
             new BsonElement("banner",banner),
             new BsonElement("color",color),
             new BsonElement("friends",new BsonArray(friends)),
-            new BsonElement("circles",circlesArray),
             new BsonElement("incomingFriendRequests",new BsonArray(incomingFriendRequests)),
             new BsonElement("outgoingFriendRequests",new BsonArray(outgoingFriendRequests))
         );
-        return result;
     }
 }
