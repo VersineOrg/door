@@ -184,6 +184,10 @@ class HttpServer
                         {
                             Response.Success(resp, "logged in",id);
                         }
+                        else
+                        {
+                            Response.Fail(resp, "user deleted");
+                        }
                     }
                 }
                 else
