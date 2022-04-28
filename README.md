@@ -51,3 +51,6 @@ POST // we should change this to GET though
 
 this microservice is configured with the file appsettings.json.
 a template file is provided, the expected database is a MongoDB database
+
+
+// sorry idk how to write a doc but it's still a lot better than our EPITA tp's isn't it ? - Rayan
