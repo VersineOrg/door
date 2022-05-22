@@ -1,19 +1,19 @@
 using System.Net;
 using MongoDB.Bson;
 using Newtonsoft.Json;
-using WebToken;
+using VersineUser;
 
 namespace door;
 
 class HttpServer
 {
-    public static HttpListener? Listener;
+    public static HttpListener? listener;
 
     public static async Task HandleIncomingConnections(EasyMango.EasyMango database, WebToken.WebToken jwt)
     {
         while (true)
         {
-            HttpListenerContext ctx = await Listener?.GetContextAsync()!;
+            HttpListenerContext ctx = await listener?.GetContextAsync()!;
 
             HttpListenerRequest req = ctx.Request;
             HttpListenerResponse resp = ctx.Response;
@@ -245,9 +245,9 @@ class HttpServer
 
         // Create a Http server and start listening for incoming connections
         string url = "http://*:" + config.GetValue<String>("Port") + "/";
-        Listener = new HttpListener();
-        Listener.Prefixes.Add(url);
-        Listener.Start();
+        listener = new HttpListener();
+        listener.Prefixes.Add(url);
+        listener.Start();
         Console.WriteLine("Listening for connections on {0}", url);
 
         // Handle requests
@@ -255,6 +255,6 @@ class HttpServer
         listenTask.GetAwaiter().GetResult();
         
         // Close the listener
-        Listener.Close();
+        listener.Close();
     }
 }
