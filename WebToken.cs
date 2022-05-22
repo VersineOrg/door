@@ -13,14 +13,14 @@ public static class WebToken
         .Build();
                 
     // secret key, stored in an environment variable
-    private static readonly string secretKey = config.GetValue<String>("secretKey") ?? "";
+    private static readonly string SecretKey = config.GetValue<String>("secretKey") ?? "";
     
     // number of seconds until the token expires, if 0 the token never expires
     // stored in an environment variable
-    private static readonly uint expireDelay = UInt32.Parse(config.GetValue<String>("expireDelay") ?? "0");
+    private static readonly uint ExpireDelay = UInt32.Parse(config.GetValue<String>("expireDelay") ?? "0");
 
     // the encryption algorithm
-    private static readonly string algorithm = "HS256";
+    private static readonly string Algorithm = "HS256";
     
     
     // returns an empty string if token is invalid
@@ -46,7 +46,7 @@ public static class WebToken
         // with the signature field
         if (!(Encoding.ASCII.GetString(
                 HMACSHA256.HashData(
-                    Encoding.ASCII.GetBytes(secretKey), 
+                    Encoding.ASCII.GetBytes(SecretKey), 
                     Encoding.ASCII.GetBytes(tokenParts[0] + tokenParts[1]))).Equals(tokenParts[2])))
         {
             return "";
@@ -103,14 +103,14 @@ public static class WebToken
     {
         // generate header json
         JObject headerJson = new JObject(
-        new JProperty("algo",algorithm),
+        new JProperty("algo",Algorithm),
         new JProperty("type","JWT")
             );
         
         // generate payload json
         JObject payloadJson = new JObject(
             new JProperty("id",id),
-            new JProperty("exp",expireDelay==0?"0":(GetCurrentUnixTime()+expireDelay).ToString())
+            new JProperty("exp",ExpireDelay==0?"0":(GetCurrentUnixTime()+ExpireDelay).ToString())
         );
 
         string header = EncodeBase64(headerJson.ToString());
@@ -118,7 +118,7 @@ public static class WebToken
         string signature = EncodeBase64(
                 Encoding.ASCII.GetString(
                     HMACSHA256.HashData(
-                        Encoding.ASCII.GetBytes(secretKey), 
+                        Encoding.ASCII.GetBytes(SecretKey), 
                         Encoding.ASCII.GetBytes(header + payload))));
 
         return (header+"."+payload+"."+signature);

@@ -34,7 +34,7 @@ class HttpServer
                 try
                 {
                     username = ((string) body.username).Trim();
-                    password = (string) body.password;
+                    password = ((string) body.password).Trim();
                     ticket = ((string) body.ticket).Trim();
                 }
                 catch
@@ -57,28 +57,39 @@ class HttpServer
                             int ticketCount = ticketOwnerBson.GetElement("ticketCount").Value.AsInt32;
                             if ( ticketCount > 0)
                             {
-                                // Hash password and add salt
-                                password = HashTools.HashString(password, username);
-
                                 string userTicket = Ticket.GenTicket(username);
-                                User newUser = new User(username, password, userTicket);
+                                User newUser = new User(username, "", userTicket);
 
                                 // Register new user
                                 if (database.AddSingleDatabaseEntry(newUser.ToBson()))
                                 {
                                     if (database.GetSingleDatabaseEntry("username", username,out BsonDocument newUserBson))
                                     {
-                                        // change ticket count
+                                        
+                                        // id of the registered user
+                                        string userId = newUserBson.GetElement("_id").Value.AsObjectId.ToString();
+                                        
+                                        // change ticket count of the ticket owner
                                         ticketOwnerBson.SetElement(new BsonElement("ticketCount", ticketCount - 1));
                                         database.ReplaceSingleDatabaseEntry("_id",
                                             ticketOwnerBson.GetElement("_id").Value.AsObjectId,
                                             ticketOwnerBson);
+                                        
+                                        // Hash password and add salt
+                                        password = HashTools.HashString(userId, username);
+                                        
+                                        // set new user password
+                                        newUser.password = password;
+                                        database.ReplaceSingleDatabaseEntry("_id",
+                                            userId,
+                                            newUser.ToBson());
 
                                         // response
-                                        Response.Success(resp, "user created", WebToken.GenerateToken(newUserBson.GetElement("_id").Value.AsObjectId.ToString()));
+                                        Response.Success(resp, "user created", WebToken.GenerateToken(userId));
                                     }
                                     else
                                     {
+                                        database.RemoveSingleDatabaseEntry("username", username);
                                         Response.Fail(resp, "an error occured, please try again in a few minutes");
                                     }
                                 }
@@ -119,7 +130,7 @@ class HttpServer
                 try
                 {
                     username = ((string) body.username).Trim();
-                    password = (string) body.password;
+                    password = ((string) body.password).Trim();
                 }
                 catch
                 {
@@ -129,14 +140,17 @@ class HttpServer
 
                 if (!(String.IsNullOrEmpty(username) || String.IsNullOrEmpty(password)))
                 {
-                    password = HashTools.HashString(password, username);
-
+                    
                     // search user by username
                     if (database.GetSingleDatabaseEntry("username", username, out BsonDocument userDocument))
                     {
-                        if (userDocument.GetElement("password").Value.AsString == password)
+
+                        string userId = userDocument.GetElement("_id").Value.AsObjectId.ToString();
+                        password = HashTools.HashString(password, userId);
+                        
+                        if (string.Equals(userDocument.GetElement("password").Value.AsString,password))
                         {
-                            Response.Success(resp, "logged in", WebToken.GenerateToken(userDocument.GetElement("_id").Value.AsObjectId.ToString()));
+                            Response.Success(resp, "logged in", WebToken.GenerateToken(userId));
                         }
                         else
                         {
@@ -186,7 +200,7 @@ class HttpServer
                         }
                         else
                         {
-                            Response.Fail(resp, "user deleted");
+                            Response.Fail(resp, "user no longer exists");
                         }
                     }
                 }
@@ -206,6 +220,8 @@ class HttpServer
 
     public static void Main(string[] args)
     {
+        
+        // Load config file
         IConfigurationRoot config =
             new ConfigurationBuilder()
                 .SetBasePath(Directory.GetCurrentDirectory())
@@ -213,6 +229,7 @@ class HttpServer
                 .AddEnvironmentVariables()
                 .Build();
             
+        // Get values from config file
         string connectionString = config.GetValue<String>("connectionString");
         string databaseNAme = config.GetValue<String>("databaseName");
         string collectionName = config.GetValue<String>("collectionName");
