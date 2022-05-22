@@ -1,6 +1,7 @@
 using System.Net;
 using MongoDB.Bson;
 using Newtonsoft.Json;
+using WebToken;
 
 namespace door;
 
@@ -8,7 +9,7 @@ class HttpServer
 {
     public static HttpListener? Listener;
 
-    public static async Task HandleIncomingConnections(EasyMango.EasyMango database)
+    public static async Task HandleIncomingConnections(EasyMango.EasyMango database, WebToken.WebToken jwt)
     {
         while (true)
         {
@@ -85,7 +86,7 @@ class HttpServer
                                             newUser.ToBson());
 
                                         // response
-                                        Response.Success(resp, "user created", WebToken.GenerateToken(userId));
+                                        Response.Success(resp, "user created", jwt.GenerateToken(userId));
                                     }
                                     else
                                     {
@@ -150,7 +151,7 @@ class HttpServer
                         
                         if (string.Equals(userDocument.GetElement("password").Value.AsString,password))
                         {
-                            Response.Success(resp, "logged in", WebToken.GenerateToken(userId));
+                            Response.Success(resp, "logged in", jwt.GenerateToken(userId));
                         }
                         else
                         {
@@ -186,7 +187,7 @@ class HttpServer
 
                 if (!String.IsNullOrEmpty(token))
                 {
-                    string id = WebToken.GetIdFromToken(token);
+                    string id = jwt.GetIdFromToken(token);
                     if (id=="")
                     {
                         Response.Fail(resp, "invalid token");
@@ -233,7 +234,11 @@ class HttpServer
         string connectionString = config.GetValue<String>("connectionString");
         string databaseNAme = config.GetValue<String>("databaseName");
         string collectionName = config.GetValue<String>("collectionName");
+        string secretKey = config.GetValue<String>("secretKey");
+        uint expireDelay = config.GetValue<uint>("expireDelay");
 
+        // Json web token
+        WebToken.WebToken jwt = new WebToken.WebToken(secretKey,expireDelay);
         
         // Create a new EasyMango database
         EasyMango.EasyMango database = new EasyMango.EasyMango(connectionString,databaseNAme,collectionName);
@@ -246,7 +251,7 @@ class HttpServer
         Console.WriteLine("Listening for connections on {0}", url);
 
         // Handle requests
-        Task listenTask = HandleIncomingConnections(database);
+        Task listenTask = HandleIncomingConnections(database, jwt);
         listenTask.GetAwaiter().GetResult();
         
         // Close the listener
