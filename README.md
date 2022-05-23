@@ -26,7 +26,7 @@ POST
 
 ##### method
 
-POST // we should change this to GET though
+GET
 
 ##### body
 
@@ -39,7 +39,7 @@ POST // we should change this to GET though
 
 ##### method
 
-POST // we should change this to GET though
+GET
 
 ##### body
 
