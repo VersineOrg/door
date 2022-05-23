@@ -26,7 +26,7 @@ POST
 
 ##### method
 
-GET
+POST
 
 ##### body
 
@@ -39,7 +39,7 @@ GET
 
 ##### method
 
-GET
+POST
 
 ##### body
 
