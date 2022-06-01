@@ -15,7 +15,6 @@ FROM mcr.microsoft.com/dotnet/aspnet:6.0
 EXPOSE 8000
 WORKDIR /app
 COPY --from=build /app/out .
-EXPOSE 8000
 #CMD ["./door"] 
 ENTRYPOINT ["dotnet","door.dll"]
 
