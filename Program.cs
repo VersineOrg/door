@@ -161,7 +161,6 @@ class HttpServer
                         }
                         else
                         {
-                            Console.WriteLine(password);
                             Response.Fail(resp, "wrong username or password");
                         }
                     }
