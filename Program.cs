@@ -79,7 +79,7 @@ class HttpServer
                                             ticketOwnerBson);
                                         
                                         // Hash password and add salt
-                                        password = HashTools.HashString(stringUserId, username);
+                                        password = HashTools.HashString(password, stringUserId);
                                         
                                         // set new user password
                                         newUser.password = password;
@@ -161,6 +161,7 @@ class HttpServer
                         }
                         else
                         {
+                            Console.WriteLine(password);
                             Response.Fail(resp, "wrong username or password");
                         }
                     }
