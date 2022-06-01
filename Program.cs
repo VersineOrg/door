@@ -69,7 +69,8 @@ class HttpServer
                                     {
                                         
                                         // id of the registered user
-                                        string userId = newUserBson.GetElement("_id").Value.AsObjectId.ToString();
+                                        BsonObjectId userId = newUserBson.GetElement("_id").Value.AsObjectId;
+                                        string stringUserId = userId.ToString();
                                         
                                         // change ticket count of the ticket owner
                                         ticketOwnerBson.SetElement(new BsonElement("ticketCount", ticketCount - 1));
@@ -78,16 +79,20 @@ class HttpServer
                                             ticketOwnerBson);
                                         
                                         // Hash password and add salt
-                                        password = HashTools.HashString(userId, username);
+                                        password = HashTools.HashString(stringUserId, username);
                                         
                                         // set new user password
                                         newUser.password = password;
-                                        database.ReplaceSingleDatabaseEntry("_id",
-                                            userId,
-                                            newUser.ToBson());
-
-                                        // response
-                                        Response.Success(resp, "user created", jwt.GenerateToken(userId));
+                                        if (database.ReplaceSingleDatabaseEntry("_id",
+                                                userId,
+                                                newUser.ToBson()))
+                                        {
+                                            Response.Success(resp, "user created", jwt.GenerateToken(stringUserId));
+                                        }
+                                        else
+                                        {
+                                            Response.Fail(resp, "an error occured, please try again in a few minutes");
+                                        }
                                     }
                                     else
                                     {
