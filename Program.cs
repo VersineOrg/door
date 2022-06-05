@@ -28,7 +28,17 @@ class HttpServer
             {
                 StreamReader reader = new StreamReader(req.InputStream);
                 string bodyString = await reader.ReadToEndAsync();
-                dynamic body = JsonConvert.DeserializeObject(bodyString)!;
+                dynamic body;
+                try
+                {
+                    body = JsonConvert.DeserializeObject(bodyString)!;
+                }
+                catch
+                {
+                    Response.Fail(resp, "bad request");
+                    resp.Close();
+                    continue;
+                }
 
                 string username;
                 string password;
@@ -125,15 +135,21 @@ class HttpServer
                     Response.Fail(resp,"invalid body");
                 }
             }
-			else if (req.HttpMethod == "GET" && req.Url?.AbsolutePath == "/health")
-            {
-                Response.Success(resp,"service up","");
-            }
             else if (req.HttpMethod == "POST" && req.Url?.AbsolutePath == "/login")
             {
                 StreamReader reader = new StreamReader(req.InputStream);
                 string bodyString = await reader.ReadToEndAsync();
-                dynamic body = JsonConvert.DeserializeObject(bodyString)!;
+                dynamic body;
+                try
+                {
+                    body = JsonConvert.DeserializeObject(bodyString)!;
+                }
+                catch
+                {
+                    Response.Fail(resp, "bad request");
+                    resp.Close();
+                    continue;
+                }
 
 
                 string username;
@@ -182,7 +198,17 @@ class HttpServer
             {
                 StreamReader reader = new StreamReader(req.InputStream);
                 string bodyString = await reader.ReadToEndAsync();
-                dynamic body = JsonConvert.DeserializeObject(bodyString)!;
+                dynamic body;
+                try
+                {
+                    body = JsonConvert.DeserializeObject(bodyString)!;
+                }
+                catch
+                {
+                    Response.Fail(resp, "bad request");
+                    resp.Close();
+                    continue;
+                }
                 
                 string token;
                 
@@ -219,6 +245,10 @@ class HttpServer
                 {
                     Response.Fail(resp, "invalid body");
                 }
+            }
+            else if (req.HttpMethod == "GET" && req.Url?.AbsolutePath == "/health")
+            {
+                Response.Success(resp,"service up","");
             }
             else
             {
